@@ -1,0 +1,37 @@
+# Terraform Files
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.backup
+crash.log
+override.tf
+override.tf.json
+*-override.tf
+*-override.tf.json
+.terraformrc
+terraform.rc
+
+# Credentials files and Secrets
+*.pem
+*.key
+*.env
+secrets.json
+credentials.json
+.aws/
+.kube/
+
+# Jenkins Files
+secrets/
+.jenkins/
+
+# VS Code and System files
+.DS_Store
+.vscode/
+
+# Node.js Dependencies
+node_modules/
+
+# Logs and others
+*.log
+*.out
+           

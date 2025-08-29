@@ -10,12 +10,12 @@ pipeline {
     stages {
         stage('Checkout from Git') {
             steps {
-                git branch: 'master', url: 'https://github.com/AmanPathak-DevOps/End-to-End-Kubernetes-DevSecOps-Tetris-Project.git'
+                git branch: 'master', url: 'https://https://github.com/Fawkes-Guy/devsecops-tetris-project.git'
             }
         }
         stage('Initializing Terraform') {
             steps {
-                withAWS(credentials: 'aws-key', region: 'us-east-1') {
+                withAWS(region: 'us-east-2') {
                 dir('EKS-TF') {
                     script {
                         sh 'terraform init'
@@ -26,8 +26,8 @@ pipeline {
         }
         stage('Validate Terraform Code') {
             steps {
-                withAWS(credentials: 'aws-key', region: 'us-east-1') {
-                dir('EKS-TF') {
+                withAWS(region: 'us-east-2') {
+                dir('EKS-TF') {ß
                     script {
                         sh 'terraform validate'
                     }
@@ -37,7 +37,7 @@ pipeline {
         }
         stage('Terraform Plan') {
             steps {
-                withAWS(credentials: 'aws-key', region: 'us-east-1') {
+                withAWS(region: 'us-east-2') {
                 dir('EKS-TF') {
                     script {
                         sh "terraform plan -var-file=${params.'File-Name'}"
@@ -48,7 +48,7 @@ pipeline {
         }
         stage('Terraform Action') {
             steps {
-                withAWS(credentials: 'aws-key', region: 'us-east-1') { 
+                withAWS(region: 'us-east-2') { 
                 script {
                     echo "${params.'Terraform-Action'}"
                     dir('EKS-TF') {

@@ -10,7 +10,7 @@ pipeline {
     stages {
         stage('Checkout from Git') {
             steps {
-                git branch: 'master', url: 'https://https://github.com/Fawkes-Guy/devsecops-tetris-project.git'
+                git branch: 'master', url: 'https://github.com/Fawkes-Guy/devsecops-tetris-project.git'
             }
         }
         stage('Initializing Terraform') {
@@ -27,7 +27,7 @@ pipeline {
         stage('Validate Terraform Code') {
             steps {
                 withAWS(region: 'us-east-2') {
-                dir('EKS-TF') {ß
+                dir('EKS-TF') {
                     script {
                         sh 'terraform validate'
                     }

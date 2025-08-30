@@ -3,7 +3,7 @@ terraform {
     bucket         = "s3backendtetris"
     region         = "us-east-2"
     key            = "DevSecOps-Tetris-Project/EKS-TF/terraform.tfstate"
-    dynamodb_table = "state-lock"
+    use_lockfile   = true
     encrypt        = true
   }
   required_version = ">=0.13.0"

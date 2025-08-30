@@ -53,15 +53,15 @@ pipeline {
             steps {
                 script {
                     withDockerRegistry(credentialsId: 'docker', toolName: 'docker') {   
-                        sh 'docker tag tetrisv1 cromero/tetrisv1:${BUILD_NUMBER}'
-                        sh 'docker push cromero/tetrisv1:${BUILD_NUMBER}'
+                        sh 'docker tag tetrisv1 cesardromero/tetrisv1:${BUILD_NUMBER}'
+                        sh 'docker push cesardromero/tetrisv1:${BUILD_NUMBER}'
                     }
                 }
             }
         }
         stage("TRIVY Image Scan") {
             steps {
-                sh 'trivy image cromero/tetrisv1:${BUILD_NUMBER} > trivyimage.txt' 
+                sh 'trivy image cesardromero/tetrisv1:${BUILD_NUMBER} > trivyimage.txt' 
             }
         }
         stage('Checkout Code') {
@@ -81,12 +81,12 @@ pipeline {
                             git config user.email "cesard.romero@gmail.com"
                             git config user.name "Fawkes-Guy"
                             BUILD_NUMBER=${BUILD_NUMBER}
-                            echo $BUILD_NUMBER
+                            echo "BUILD_NUMBER: ${BUILD_NUMBER}"
                             imageTag=$(grep -oP '(?<=tetrisv1:)[^ ]+' deployment-service.yml)
-                            echo $imageTag
-                            sed -i "s/tetrisv1:${imageTag}/tetrisv1:${BUILD_NUMBER}/" deployment-service.yml
+                            echo "Found imageTag: ${imageTag}"
+                            sed -i "s;ikericookies/tetrisv1:${imageTag};cesardromero/tetrisv1:${BUILD_NUMBER};" deployment-service.yml
                             git add deployment-service.yml
-                            git commit -m "Update deployment Image to version \${BUILD_NUMBER}"
+                            git commit -m "Update deployment Image to version ${BUILD_NUMBER}"
                             git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:test
                         '''
                     }

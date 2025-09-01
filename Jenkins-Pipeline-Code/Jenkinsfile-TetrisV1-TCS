@@ -1,0 +1,117 @@
+pipeline {
+    agent any
+    environment {
+        // Variables globales para hacer el pipeline más limpio y fácil de mantener
+        AWS_ACCOUNT_ID          = '458575205940' // Reemplaza con tu ID de cuenta
+        AWS_REGION              = 'us-east-2'
+        ECR_REPO_NAME           = 'tetris-app'  // El repositorio que creamos para la app
+        TENABLE_API_TOKEN       = credentials('tenable-api-token')
+        TENABLE_API_URL         = 'https://us.app.ermetic.com'
+        GIT_REPO_URL            = 'https://github.com/Fawkes-Guy/devsecops-tetris-project.git'
+    }
+    tools {
+        nodejs 'nodejs'
+    }
+    stages {
+        stage('Cleaning Workspace') {
+            steps {
+                cleanWs()
+            }
+        }
+        stage('Checkout from Git') {
+            steps {
+                git branch: 'test', url: "${env.GIT_REPO_URL}"
+            }
+        }
+        stage('Installing Dependencies') {
+            steps {
+                dir('Tetris-V1') {
+                    sh 'npm install'
+                }
+            }
+        }
+        stage('OWASP Dependency-Check Scan') {
+            steps {
+                dir('Tetris-V1') {
+                    dependencyCheck additionalArguments: '--scan ./ --disableYarnAudit --disableNodeAudit', odcInstallation: 'DP-Check'
+                    dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
+                }
+            }
+        }
+
+        // --- NUEVA ETAPA DE TCS ---
+        stage('Scan Kubernetes Manifests with TCS') {
+            steps {
+                dir('Manifest-file') { // Escaneamos el directorio con el deployment.yaml
+                    docker.image('tenable/cloud-security-scanner:latest').inside("--entrypoint='' --pull=always") {
+                        sh '''
+                           tenable iac scan --types kubernetes --fail-on-min-severity high
+                        '''
+                    }
+                }
+            }
+        }
+
+        // --- ETAPA MODIFICADA PARA ECR ---
+        stage('Build & Push Image to ECR') {
+            steps {
+                script {
+                    def imageTag = "v${env.BUILD_NUMBER}"
+                    def ecrImageUri = "${env.AWS_ACCOUNT_ID}.dkr.ecr.${env.AWS_REGION}.amazonaws.com/${env.ECR_REPO_NAME}:${imageTag}"
+                    
+                    sh "aws ecr get-login-password --region ${env.AWS_REGION} | docker login --username AWS --password-stdin ${env.AWS_ACCOUNT_ID}.dkr.ecr.${env.AWS_REGION}.amazonaws.com"
+                    
+                    dir('Tetris-V1') {
+                        sh "docker build -t ${ecrImageUri} ."
+                        sh "docker push ${ecrImageUri}"
+                    }
+                }
+            }
+        }
+
+        // --- ETAPA MODIFICADA PARA TCS ---
+        stage('Scan Container Image with TCS') {
+            steps {
+                script {
+                    def imageTag = "v${env.BUILD_NUMBER}"
+                    def ecrImageUri = "${env.AWS_ACCOUNT_ID}.dkr.ecr.${env.AWS_REGION}.amazonaws.com/${env.ECR_REPO_NAME}:${imageTag}"
+                    
+                    docker.image('tenable/cloud-security-scanner:latest').inside("--entrypoint='' --pull=always") {
+                        withCredentials([string(credentialsId: 'aws-credentials', variable: 'AWS_ACCESS_KEY_ID'), string(credentialsId: 'aws-secret-credentials', variable: 'AWS_SECRET_ACCESS_KEY')]) {
+                             sh """
+                                tenable container-image scan \\
+                                    --image-name "${ecrImageUri}" \\
+                                    --region "${env.AWS_REGION}" \\
+                                    --fail-on-min-severity high
+                            """
+                        }
+                    }
+                }
+            }
+        }
+        
+        // --- ETAPA MODIFICADA Y MEJORADA ---
+        stage('Update Manifest & Trigger ArgoCD') {
+            steps {
+                dir('Manifest-file') {
+                    withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
+                        sh """
+                            git config user.email "cesard.romero@gmail.com"
+                            git config user.name "Fawkes-Guy"
+                            
+                            def imageTag = "v${env.BUILD_NUMBER}"
+                            def ecrImageUri = "${env.AWS_ACCOUNT_ID}.dkr.ecr.${env.AWS_REGION}.amazonaws.com/${env.ECR_REPO_NAME}:${imageTag}"
+                            
+                            # Este comando 'sed' es más robusto y reemplaza toda la línea de la imagen
+                            sed -i "s#image: .*#image: ${ecrImageUri}#g" deployment-service.yml
+                            
+                            git add deployment-service.yml
+                            git commit -m "Update deployment image to ${imageTag}"
+                            git push https://${GITHUB_TOKEN}@github.com/Fawkes-Guy/devsecops-tetris-project.git HEAD:test
+                        """
+                    }
+                }
+            }
+        }
+    }
+}

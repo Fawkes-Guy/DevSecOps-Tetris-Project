@@ -27,6 +27,7 @@ pipeline {
                 TENABLE_PIPELINE_RUN_ID = "${env.BUILD_ID}"
                 TENABLE_PIPELINE_RUN_TRIGGER = "${currentBuild.getBuildCauses()[0].shortDescription}"
                 TENABLE_PIPELINE_RUN_URL = "${env.BUILD_URL}"
+                TENABLE_CODE_REPOSITORY_URL = 'https://github.com/Fawkes-Guy/devsecops-tetris-project.git'
             }
             steps {
                 withAWS(region: 'us-east-2') {
@@ -110,6 +111,7 @@ pipeline {
                 TENABLE_PIPELINE_RUN_ID = "${env.BUILD_ID}"
                 TENABLE_PIPELINE_RUN_TRIGGER = "${currentBuild.getBuildCauses()[0].shortDescription}"
                 TENABLE_PIPELINE_RUN_URL = "${env.BUILD_URL}"
+                TENABLE_CODE_REPOSITORY_URL = 'https://github.com/Fawkes-Guy/devsecops-tetris-project.git'
             }
             steps {
                 withAWS(region: 'us-east-2') {
